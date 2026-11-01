@@ -1,0 +1,13 @@
+.git
+.gitignore
+.venv
+venv
+__pycache__
+*.pyc
+.pytest_cache
+.env
+dev.log
+Dockerfile
+.dockerignore
+*.zip
+data/sample-hotels.csv

@@ -1,0 +1,8 @@
+# Pinned for reproducible builds (verified working set, Python 3.12).
+fastapi==0.128.0
+uvicorn[standard]==0.44.0
+httpx==0.28.1
+beautifulsoup4==4.14.3
+PyJWT==2.12.1
+python-multipart==0.0.24
+python-dotenv==1.2.2

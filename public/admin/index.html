@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LGM CMS Admin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { theme: { extend: { colors: { ink: "#1f2937" } } } };
+  </script>
+  <style>
+    body { background: #f3f4f6; }
+    .flat-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 0.5rem; }
+    .flat-input { background: #fff; border: 1px solid #d1d5db; border-radius: 0.375rem; width: 100%; }
+    .flat-input:focus { outline: 2px solid #0d9488; outline-offset: 0; border-color: #0d9488; }
+    .btn { border-radius: 0.375rem; font-weight: 600; }
+    .thumb { width: 3rem; height: 3rem; object-fit: cover; border-radius: 0.375rem; border: 1px solid #e5e7eb; background: #f9fafb; }
+  </style>
+</head>
+<body class="text-gray-800">
+  <div id="app" class="max-w-6xl mx-auto px-4 py-6">
+
+    <!-- Login view -->
+    <div id="login-view" class="hidden max-w-sm mx-auto mt-16 flat-card p-6">
+      <h1 class="text-xl font-bold mb-1">LGM CMS Admin</h1>
+      <p class="text-sm text-gray-500 mb-4">Internal content backend</p>
+      <label class="block text-sm font-semibold mb-1">User</label>
+      <input id="login-user" class="flat-input px-3 py-2 mb-3" autocomplete="username" />
+      <label class="block text-sm font-semibold mb-1">Password</label>
+      <input id="login-pass" type="password" class="flat-input px-3 py-2 mb-4" autocomplete="current-password" />
+      <button id="login-btn" class="btn w-full bg-teal-600 text-white px-3 py-2 hover:bg-teal-700">Sign in</button>
+      <p id="login-error" class="hidden text-sm text-red-600 mt-3"></p>
+    </div>
+
+    <!-- Main view -->
+    <div id="main-view" class="hidden">
+      <div class="flex flex-wrap items-center gap-2 mb-4">
+        <h1 class="text-xl font-bold mr-auto">Hotels <span id="hotel-count" class="text-sm font-normal text-gray-500"></span></h1>
+        <input id="search" placeholder="Filter by name, id, portal id…" class="flat-input px-3 py-2 w-64" style="width: 16rem;" />
+        <button id="add-btn" class="btn bg-teal-600 text-white px-3 py-2 hover:bg-teal-700">Add hotel</button>
+        <button id="import-btn" class="btn bg-white border border-gray-300 px-3 py-2 hover:bg-gray-50">Import CSV</button>
+        <input id="import-file" type="file" accept=".csv" class="hidden" />
+        <button id="export-btn" class="btn bg-white border border-gray-300 px-3 py-2 hover:bg-gray-50">Export</button>
+        <button id="logout-btn" class="btn bg-white border border-gray-300 px-3 py-2 hover:bg-gray-50">Logout</button>
+      </div>
+      <div id="import-result" class="hidden flat-card p-4 mb-4 text-sm"></div>
+      <div id="status" class="hidden text-sm mb-3 px-3 py-2 rounded border"></div>
+
+      <div class="flat-card overflow-hidden">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="bg-gray-50 text-left text-gray-500">
+              <th class="px-3 py-2 font-semibold">Hotel</th>
+              <th class="px-3 py-2 font-semibold">Atoll</th>
+              <th class="px-3 py-2 font-semibold">Stars</th>
+              <th class="px-3 py-2 font-semibold">Portal link</th>
+              <th class="px-3 py-2 font-semibold">Media</th>
+              <th class="px-3 py-2 font-semibold text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="hotel-rows"></tbody>
+        </table>
+        <p id="empty-note" class="hidden px-3 py-6 text-center text-gray-500 text-sm">No hotels yet — add one or import a CSV.</p>
+      </div>
+    </div>
+
+    <!-- Editor modal -->
+    <div id="editor-backdrop" class="hidden fixed inset-0 bg-gray-900 bg-opacity-40 flex items-start justify-center p-4 overflow-y-auto">
+      <div class="flat-card w-full max-w-2xl p-6 my-8">
+        <h2 id="editor-title" class="text-lg font-bold mb-4">Add hotel</h2>
+        <input type="hidden" id="f-id" />
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div class="md:col-span-2">
+            <label class="block text-sm font-semibold mb-1">Name *</label>
+            <input id="f-name" class="flat-input px-3 py-2" />
+          </div>
+          <div class="md:col-span-2">
+            <label class="block text-sm font-semibold mb-1">Description</label>
+            <textarea id="f-description" rows="3" class="flat-input px-3 py-2"></textarea>
+          </div>
+          <div>
+            <label class="block text-sm font-semibold mb-1">Atoll</label>
+            <input id="f-atoll" class="flat-input px-3 py-2" />
+          </div>
+          <div>
+            <label class="block text-sm font-semibold mb-1">Stars (0–7, blank = none)</label>
+            <input id="f-stars" type="number" min="0" max="7" step="1" class="flat-input px-3 py-2" />
+          </div>
+          <div class="md:col-span-2">
+            <label class="block text-sm font-semibold mb-1">Website</label>
+            <input id="f-website" class="flat-input px-3 py-2" placeholder="https://…" />
+          </div>
+          <div>
+            <label class="block text-sm font-semibold mb-1">Portal hotel ID (mapping)</label>
+            <input id="f-portal-id" class="flat-input px-3 py-2" placeholder="e.g. 11 — blank = unmapped" />
+          </div>
+          <div>
+            <label class="block text-sm font-semibold mb-1">Portal slug</label>
+            <input id="f-portal-slug" class="flat-input px-3 py-2" placeholder="e.g. sun-resort" />
+          </div>
+          <div class="md:col-span-2">
+            <label class="block text-sm font-semibold mb-1">Photos — one URL per line</label>
+            <textarea id="f-photos" rows="3" class="flat-input px-3 py-2" placeholder="https://…"></textarea>
+          </div>
+          <div class="md:col-span-2">
+            <label class="block text-sm font-semibold mb-1">Amenities — comma separated</label>
+            <input id="f-amenities" class="flat-input px-3 py-2" placeholder="wifi, spa, diving" />
+          </div>
+          <div class="md:col-span-2 pt-2">
+            <h3 class="font-bold text-sm text-gray-500 uppercase tracking-wide">House rules</h3>
+          </div>
+          <div>
+            <label class="block text-sm font-semibold mb-1">Check-in from</label>
+            <input id="f-check-in-from" class="flat-input px-3 py-2" placeholder="14:00" />
+          </div>
+          <div>
+            <label class="block text-sm font-semibold mb-1">Check-out until</label>
+            <input id="f-check-out-until" class="flat-input px-3 py-2" placeholder="12:00" />
+          </div>
+          <div class="md:col-span-2">
+            <label class="block text-sm font-semibold mb-1">Check-in notes</label>
+            <textarea id="f-check-in-notes" rows="2" class="flat-input px-3 py-2"></textarea>
+          </div>
+          <div class="md:col-span-2 pt-2">
+            <h3 class="font-bold text-sm text-gray-500 uppercase tracking-wide">Policies</h3>
+          </div>
+          <div class="md:col-span-2">
+            <label class="block text-sm font-semibold mb-1">Cancellation / prepayment</label>
+            <textarea id="f-cancellation" rows="2" class="flat-input px-3 py-2"></textarea>
+          </div>
+          <div class="md:col-span-2">
+            <label class="block text-sm font-semibold mb-1">Child policies</label>
+            <textarea id="f-child-policies" rows="2" class="flat-input px-3 py-2"></textarea>
+          </div>
+          <div class="md:col-span-2">
+            <label class="block text-sm font-semibold mb-1">Cot &amp; extra bed policies</label>
+            <textarea id="f-bed-policies" rows="3" class="flat-input px-3 py-2"></textarea>
+          </div>
+          <div>
+            <label class="block text-sm font-semibold mb-1">Age restriction</label>
+            <input id="f-age-restriction" class="flat-input px-3 py-2" placeholder="No age requirement for check-in" />
+          </div>
+          <div>
+            <label class="block text-sm font-semibold mb-1">Payment methods — comma separated</label>
+            <input id="f-payment-methods" class="flat-input px-3 py-2" placeholder="VISA, MASTER, CASH" />
+          </div>
+          <div>
+            <label class="block text-sm font-semibold mb-1">Pets</label>
+            <select id="f-pets-allowed" class="flat-input px-3 py-2">
+              <option value="">Unspecified</option>
+              <option value="true">Allowed</option>
+              <option value="false">Not allowed</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-semibold mb-1">Pets notes</label>
+            <input id="f-pets-notes" class="flat-input px-3 py-2" />
+          </div>
+          <div class="md:col-span-2">
+            <label class="block text-sm font-semibold mb-1">Fine print</label>
+            <textarea id="f-fine-print" rows="4" class="flat-input px-3 py-2"></textarea>
+          </div>
+        </div>
+        <p id="editor-error" class="hidden text-sm text-red-600 mt-3"></p>
+        <div class="flex justify-end gap-2 mt-5">
+          <button id="editor-cancel" class="btn bg-white border border-gray-300 px-4 py-2 hover:bg-gray-50">Cancel</button>
+          <button id="editor-save" class="btn bg-teal-600 text-white px-4 py-2 hover:bg-teal-700">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="./app.js"></script>
+</body>
+</html>
